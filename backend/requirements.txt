@@ -1,0 +1,11 @@
+# --- Backend core ---
+fastapi
+uvicorn[standard]
+
+# --- ORM / DB ---
+SQLAlchemy
+alembic
+
+# --- Validation ---
+pydantic
+pydantic-settings

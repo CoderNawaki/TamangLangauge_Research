@@ -1,0 +1,9 @@
+[project]
+name = "tamang-dictionary-backend"
+version = "0.1.0"
+description = "FastAPI backend for the Tamang language dictionary"
+requires-python = ">=3.11"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]
