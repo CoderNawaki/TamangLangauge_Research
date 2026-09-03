@@ -26,6 +26,20 @@ export interface Audio {
   recorded_at: string | null;
 }
 
+export interface Dialect {
+  id: number;
+  name: string;
+  name_local: string | null;
+  region: string | null;
+}
+
+export interface Source {
+  id: number;
+  title: string | null;
+  author: string | null;
+  source_type: string;
+}
+
 export interface Entry {
   id: number;
   headword_devanagari: string;
@@ -36,6 +50,8 @@ export interface Entry {
   pos: string | null;
   status: string;
   frequency: number | null;
+  dialect: Dialect | null;
+  source: Source | null;
   senses: Sense[];
   audio: Audio[];
 }
@@ -43,12 +59,81 @@ export interface Entry {
 export async function fetchEntries(params?: {
   q?: string;
   status?: string;
+  pos?: string;
+  tone?: string;
 }): Promise<Entry[]> {
   const query = new URLSearchParams();
   if (params?.q) query.set("q", params.q);
   if (params?.status) query.set("status", params.status);
+  if (params?.pos) query.set("pos", params.pos);
+  if (params?.tone) query.set("tone", params.tone);
   const url = `${API_BASE_URL}/api/entries${query.toString() ? `?${query}` : ""}`;
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Failed to fetch entries (${res.status})`);
   return res.json() as Promise<Entry[]>;
+}
+
+export async function fetchEntry(id: number): Promise<Entry> {
+  const res = await fetch(`${API_BASE_URL}/api/entries/${id}`);
+  if (!res.ok) throw new Error(`Failed to fetch entry (${res.status})`);
+  return res.json() as Promise<Entry>;
+}
+
+export interface ExampleInput {
+  text_devanagari?: string | null;
+  text_roman?: string | null;
+  translation_devanagari?: string | null;
+  translation_english?: string | null;
+}
+
+export interface SenseInput {
+  definition_devanagari: string;
+  definition_roman?: string | null;
+  gloss?: string | null;
+  order?: number;
+  examples?: ExampleInput[];
+}
+
+export interface EntryInput {
+  headword_devanagari: string;
+  headword_roman?: string | null;
+  headword_ipa?: string | null;
+  headword_tamyig?: string | null;
+  tone?: string | null;
+  pos?: string | null;
+  status?: string;
+  frequency?: number | null;
+  dialect_id?: number | null;
+  source_id?: number | null;
+  senses?: SenseInput[];
+}
+
+export async function createEntry(input: EntryInput): Promise<Entry> {
+  const res = await fetch(`${API_BASE_URL}/api/entries`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) throw new Error(`Failed to create entry (${res.status})`);
+  return res.json() as Promise<Entry>;
+}
+
+export async function updateEntry(
+  id: number,
+  input: Partial<EntryInput>
+): Promise<Entry> {
+  const res = await fetch(`${API_BASE_URL}/api/entries/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) throw new Error(`Failed to update entry (${res.status})`);
+  return res.json() as Promise<Entry>;
+}
+
+export async function deleteEntry(id: number): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/api/entries/${id}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) throw new Error(`Failed to delete entry (${res.status})`);
 }
