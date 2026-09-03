@@ -42,6 +42,15 @@ interface FormState {
   senses: LocalSense[];
 }
 
+const nextFreeKey = (senses: LocalSense[]): number => {
+  let max = -1;
+  for (const s of senses) {
+    max = Math.max(max, s.key);
+    for (const x of s.examples) max = Math.max(max, x.key);
+  }
+  return max + 1;
+};
+
 const emptyExample = (key: number): LocalExample => ({
   key,
   text_devanagari: "",
@@ -84,6 +93,20 @@ function AdminForm() {
     fetchEntry(editId)
       .then((e) => {
         if (!active) return;
+        const senses: LocalSense[] = e.senses.map((s, i) => ({
+          key: i,
+          definition_devanagari: s.definition_devanagari,
+          definition_roman: s.definition_roman ?? "",
+          gloss: s.gloss ?? "",
+          order: s.order,
+          examples: s.examples.map((x, j) => ({
+            key: j,
+            text_devanagari: x.text_devanagari ?? "",
+            text_roman: x.text_roman ?? "",
+            translation_devanagari: x.translation_devanagari ?? "",
+            translation_english: x.translation_english ?? "",
+          })),
+        }));
         setForm({
           headword_devanagari: e.headword_devanagari,
           headword_roman: e.headword_roman ?? "",
@@ -91,22 +114,9 @@ function AdminForm() {
           tone: e.tone ?? "",
           pos: e.pos ?? "",
           status: e.status,
-          senses: e.senses.map((s, i) => ({
-            key: i,
-            definition_devanagari: s.definition_devanagari,
-            definition_roman: s.definition_roman ?? "",
-            gloss: s.gloss ?? "",
-            order: s.order,
-            examples: s.examples.map((x, j) => ({
-              key: j,
-              text_devanagari: x.text_devanagari ?? "",
-              text_roman: x.text_roman ?? "",
-              translation_devanagari: x.translation_devanagari ?? "",
-              translation_english: x.translation_english ?? "",
-            })),
-          })),
+          senses,
         });
-        setNextKey(e.senses.length);
+        setNextKey(nextFreeKey(senses));
         setLoading(false);
       })
       .catch((err) => {
@@ -354,10 +364,18 @@ function AdminForm() {
                   />
                 </label>
                 <label className="flex flex-col gap-1 text-sm">
-                  <span className="font-medium">Gloss / roman</span>
+                  <span className="font-medium">Definition (roman)</span>
+                  <input
+                    value={sense.definition_roman}
+                    onChange={(e) => setSense(sense.key, { definition_roman: e.target.value })}
+                    className="rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-sm">
+                  <span className="font-medium">Gloss</span>
                   <input
                     value={sense.gloss || ""}
-                    onChange={(e) => setSense(sense.key, { gloss: e.target.value, definition_roman: e.target.value })}
+                    onChange={(e) => setSense(sense.key, { gloss: e.target.value })}
                     className="rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
                   />
                 </label>
