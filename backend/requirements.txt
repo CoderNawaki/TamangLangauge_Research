@@ -9,3 +9,6 @@ alembic
 # --- Validation ---
 pydantic
 pydantic-settings
+
+# --- File uploads ---
+python-multipart

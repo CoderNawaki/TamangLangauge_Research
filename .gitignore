@@ -13,6 +13,9 @@ backend/*.db
 backend/*.sqlite
 backend/*.sqlite3
 
+# User-uploaded audio (dev)
+backend/media/
+
 # Node / frontend
 node_modules/
 .next/
