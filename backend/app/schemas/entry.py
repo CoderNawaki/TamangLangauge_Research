@@ -7,6 +7,34 @@ from pydantic import BaseModel, ConfigDict, Field
 
 # ---------- Nested ----------
 
+class ExampleGlossOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    word: str
+    gloss: str | None = None
+    order: int
+
+
+class ExampleGlossIn(BaseModel):
+    word: str
+    gloss: str | None = None
+    order: int = 0
+
+
+class WordFormIn(BaseModel):
+    label: str | None = None
+    form_devanagari: str
+    form_roman: str | None = None
+    order: int = 0
+
+
+class WordFormOut(WordFormIn):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+
+
 class SourceOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -30,12 +58,14 @@ class ExampleIn(BaseModel):
     text_roman: str | None = None
     translation_devanagari: str | None = None
     translation_english: str | None = None
+    glosses: list[ExampleGlossIn] = Field(default_factory=list)
 
 
 class ExampleOut(ExampleIn):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    glosses: list[ExampleGlossOut] = Field(default_factory=list)
 
 
 class SenseIn(BaseModel):
@@ -76,11 +106,13 @@ class EntryCreate(BaseModel):
     headword_tamyig: str | None = None
     tone: str | None = None
     pos: str | None = None
+    grammar: str | None = None
     status: str = "draft"
     frequency: int | None = None
     dialect_id: int | None = None
     source_id: int | None = None
     senses: list[SenseIn] = Field(default_factory=list)
+    wordforms: list[WordFormIn] = Field(default_factory=list)
 
 
 class EntryUpdate(BaseModel):
@@ -90,11 +122,13 @@ class EntryUpdate(BaseModel):
     headword_tamyig: str | None = None
     tone: str | None = None
     pos: str | None = None
+    grammar: str | None = None
     status: str | None = None
     frequency: int | None = None
     dialect_id: int | None = None
     source_id: int | None = None
     senses: list[SenseIn] | None = None
+    wordforms: list[WordFormIn] | None = None
 
 
 class EntryOut(BaseModel):
@@ -107,9 +141,11 @@ class EntryOut(BaseModel):
     headword_tamyig: str | None = None
     tone: str | None = None
     pos: str | None = None
+    grammar: str | None = None
     status: str
     frequency: int | None = None
     dialect: DialectOut | None = None
     source: SourceOut | None = None
     senses: list[SenseOut] = Field(default_factory=list)
     audio: list[AudioOut] = Field(default_factory=list)
+    wordforms: list[WordFormOut] = Field(default_factory=list)

@@ -1,12 +1,28 @@
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
 
+export interface ExampleGloss {
+  id: number;
+  word: string;
+  gloss: string | null;
+  order: number;
+}
+
 export interface Example {
   id: number;
   text_devanagari: string | null;
   text_roman: string | null;
   translation_devanagari: string | null;
   translation_english: string | null;
+  glosses: ExampleGloss[];
+}
+
+export interface WordForm {
+  id: number;
+  label: string | null;
+  form_devanagari: string;
+  form_roman: string | null;
+  order: number;
 }
 
 export interface Sense {
@@ -48,12 +64,14 @@ export interface Entry {
   headword_tamyig: string | null;
   tone: string | null;
   pos: string | null;
+  grammar: string | null;
   status: string;
   frequency: number | null;
   dialect: Dialect | null;
   source: Source | null;
   senses: Sense[];
   audio: Audio[];
+  wordforms: WordForm[];
 }
 
 export async function fetchEntries(params?: {
@@ -90,6 +108,20 @@ export interface ExampleInput {
   text_roman?: string | null;
   translation_devanagari?: string | null;
   translation_english?: string | null;
+  glosses?: ExampleGlossInput[];
+}
+
+export interface ExampleGlossInput {
+  word: string;
+  gloss?: string | null;
+  order?: number;
+}
+
+export interface WordFormInput {
+  label?: string | null;
+  form_devanagari: string;
+  form_roman?: string | null;
+  order?: number;
 }
 
 export interface SenseInput {
@@ -107,11 +139,13 @@ export interface EntryInput {
   headword_tamyig?: string | null;
   tone?: string | null;
   pos?: string | null;
+  grammar?: string | null;
   status?: string;
   frequency?: number | null;
   dialect_id?: number | null;
   source_id?: number | null;
   senses?: SenseInput[];
+  wordforms?: WordFormInput[];
 }
 
 export async function createEntry(input: EntryInput): Promise<Entry> {
@@ -222,4 +256,12 @@ export async function importWordlist(file: File): Promise<ImportSummary> {
   });
   if (!res.ok) throw new Error(`Failed to import wordlist (${res.status})`);
   return res.json() as Promise<ImportSummary>;
+}
+
+export async function compareDialects(headword: string): Promise<Entry[]> {
+  const res = await fetch(
+    `${API_BASE_URL}/api/compare?headword=${encodeURIComponent(headword)}`
+  );
+  if (!res.ok) throw new Error(`Failed to compare dialects (${res.status})`);
+  return res.json() as Promise<Entry[]>;
 }

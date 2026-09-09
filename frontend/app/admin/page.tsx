@@ -20,12 +20,19 @@ const POS_OPTIONS = ["noun", "verb", "adjective", "adverb", "pronoun", "particle
 const TONE_OPTIONS = ["T1", "T2", "T3", "T4"];
 const STATUS_OPTIONS = ["draft", "reviewed", "published"];
 
+interface LocalGloss {
+  key: number;
+  word: string;
+  gloss: string;
+}
+
 interface LocalExample {
   key: number;
   text_devanagari: string;
   text_roman: string;
   translation_devanagari: string;
   translation_english: string;
+  glosses: LocalGloss[];
 }
 
 interface LocalSense {
@@ -37,23 +44,39 @@ interface LocalSense {
   examples: LocalExample[];
 }
 
+interface LocalWordForm {
+  key: number;
+  label: string;
+  form_devanagari: string;
+  form_roman: string;
+}
+
 interface FormState {
   headword_devanagari: string;
   headword_roman: string;
   headword_ipa: string;
   tone: string;
   pos: string;
+  grammar: string;
   status: string;
   senses: LocalSense[];
+  wordforms: LocalWordForm[];
   audio: Audio[];
 }
 
-const nextFreeKey = (senses: LocalSense[]): number => {
+const nextFreeKey = (
+  senses: LocalSense[],
+  wordforms: LocalWordForm[]
+): number => {
   let max = -1;
   for (const s of senses) {
     max = Math.max(max, s.key);
-    for (const x of s.examples) max = Math.max(max, x.key);
+    for (const x of s.examples) {
+      max = Math.max(max, x.key);
+      for (const g of x.glosses) max = Math.max(max, g.key);
+    }
   }
+  for (const w of wordforms) max = Math.max(max, w.key);
   return max + 1;
 };
 
@@ -63,6 +86,7 @@ const emptyExample = (key: number): LocalExample => ({
   text_roman: "",
   translation_devanagari: "",
   translation_english: "",
+  glosses: [],
 });
 
 const emptySense = (key: number): LocalSense => ({
@@ -72,6 +96,13 @@ const emptySense = (key: number): LocalSense => ({
   gloss: "",
   order: 0,
   examples: [],
+});
+
+const emptyWordForm = (key: number): LocalWordForm => ({
+  key,
+  label: "",
+  form_devanagari: "",
+  form_roman: "",
 });
 
 function AdminForm() {
@@ -84,8 +115,10 @@ function AdminForm() {
     headword_ipa: "",
     tone: "",
     pos: "",
+    grammar: "",
     status: "draft",
     senses: [emptySense(0)],
+    wordforms: [],
     audio: [],
   }));
   const [loading, setLoading] = useState(editId !== null);
@@ -127,7 +160,18 @@ function AdminForm() {
             text_roman: x.text_roman ?? "",
             translation_devanagari: x.translation_devanagari ?? "",
             translation_english: x.translation_english ?? "",
+            glosses: x.glosses.map((g, k) => ({
+              key: k,
+              word: g.word,
+              gloss: g.gloss ?? "",
+            })),
           })),
+        }));
+        const wordforms: LocalWordForm[] = e.wordforms.map((w, i) => ({
+          key: i,
+          label: w.label ?? "",
+          form_devanagari: w.form_devanagari,
+          form_roman: w.form_roman ?? "",
         }));
         setForm({
           headword_devanagari: e.headword_devanagari,
@@ -135,11 +179,13 @@ function AdminForm() {
           headword_ipa: e.headword_ipa ?? "",
           tone: e.tone ?? "",
           pos: e.pos ?? "",
+          grammar: e.grammar ?? "",
           status: e.status,
           senses,
+          wordforms,
           audio: e.audio,
         });
-        setNextKey(nextFreeKey(senses));
+        setNextKey(nextFreeKey(senses, wordforms));
         setLoading(false);
       })
       .catch((err) => {
@@ -200,7 +246,7 @@ function AdminForm() {
               ...s,
               examples: [
                 ...s.examples,
-                { key: nextKey, text_devanagari: "", text_roman: "", translation_devanagari: "", translation_english: "" },
+                { key: nextKey, text_devanagari: "", text_roman: "", translation_devanagari: "", translation_english: "", glosses: [] },
               ],
             }
           : s
@@ -215,6 +261,87 @@ function AdminForm() {
           : s
       ),
     }));
+
+  const setGloss = (
+    senseKey: number,
+    exKey: number,
+    glossKey: number,
+    patch: Partial<Pick<LocalGloss, "word" | "gloss">>
+  ) =>
+    setForm((f) => ({
+      ...f,
+      senses: f.senses.map((s) =>
+        s.key === senseKey
+          ? {
+              ...s,
+              examples: s.examples.map((x) =>
+                x.key === exKey
+                  ? {
+                      ...x,
+                      glosses: x.glosses.map((g) =>
+                        g.key === glossKey ? { ...g, ...patch } : g
+                      ),
+                    }
+                  : x
+              ),
+            }
+          : s
+      ),
+    }));
+
+  const addGloss = (senseKey: number, exKey: number) =>
+    setForm((f) => ({
+      ...f,
+      senses: f.senses.map((s) =>
+        s.key === senseKey
+          ? {
+              ...s,
+              examples: s.examples.map((x) =>
+                x.key === exKey
+                  ? {
+                      ...x,
+                      glosses: [...x.glosses, { key: nextKey, word: "", gloss: "" }],
+                    }
+                  : x
+              ),
+            }
+          : s
+      ),
+    }));
+
+  const removeGloss = (senseKey: number, exKey: number, glossKey: number) =>
+    setForm((f) => ({
+      ...f,
+      senses: f.senses.map((s) =>
+        s.key === senseKey
+          ? {
+              ...s,
+              examples: s.examples.map((x) =>
+                x.key === exKey
+                  ? { ...x, glosses: x.glosses.filter((g) => g.key !== glossKey) }
+                  : x
+              ),
+            }
+          : s
+      ),
+    }));
+
+  const setWordForm = (
+    key: number,
+    patch: Partial<Pick<LocalWordForm, "label" | "form_devanagari" | "form_roman">>
+  ) =>
+    setForm((f) => ({
+      ...f,
+      wordforms: f.wordforms.map((w) => (w.key === key ? { ...w, ...patch } : w)),
+    }));
+
+  const addWordForm = () => {
+    setForm((f) => ({ ...f, wordforms: [...f.wordforms, emptyWordForm(nextKey)] }));
+    setNextKey((k) => k + 1);
+  };
+
+  const removeWordForm = (key: number) =>
+    setForm((f) => ({ ...f, wordforms: f.wordforms.filter((w) => w.key !== key) }));
 
   const handleUploadAudio = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -263,6 +390,7 @@ function AdminForm() {
     headword_ipa: form.headword_ipa || null,
     tone: form.tone || null,
     pos: form.pos || null,
+    grammar: form.grammar || null,
     status: form.status,
     senses: form.senses
       .filter((s) => s.definition_devanagari.trim())
@@ -278,7 +406,22 @@ function AdminForm() {
             text_roman: x.text_roman || null,
             translation_devanagari: x.translation_devanagari || null,
             translation_english: x.translation_english || null,
+            glosses: x.glosses
+              .filter((g) => g.word.trim())
+              .map((g, k) => ({
+                word: g.word.trim(),
+                gloss: g.gloss || null,
+                order: k,
+              })),
           })),
+      })),
+    wordforms: form.wordforms
+      .filter((w) => w.form_devanagari.trim())
+      .map((w, i) => ({
+        label: w.label || null,
+        form_devanagari: w.form_devanagari,
+        form_roman: w.form_roman || null,
+        order: i,
       })),
   });
 
@@ -304,8 +447,10 @@ function AdminForm() {
           headword_ipa: "",
           tone: "",
           pos: "",
+          grammar: "",
           status: "draft",
           senses: [emptySense(nextKey)],
+          wordforms: [],
           audio: [],
         });
         setNextKey((k) => k + 1);
@@ -402,6 +547,16 @@ function AdminForm() {
               </select>
             </label>
           </div>
+
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium">Grammar</span>
+            <input
+              value={form.grammar}
+              onChange={(e) => set("grammar", e.target.value)}
+              placeholder="e.g. Class 1 transitive verb, wrt. tense paradigm…"
+              className="rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
+            />
+          </label>
         </section>
 
         {/* Senses */}
@@ -472,6 +627,39 @@ function AdminForm() {
                     onChange={(e) => setExample(sense.key, ex.key, { translation_english: e.target.value })}
                     className="w-full rounded border border-zinc-300 px-3 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
                   />
+
+                  {/* Word-level glossing (interlinear) */}
+                  {ex.glosses.map((g) => (
+                    <div key={g.key} className="flex gap-2">
+                      <input
+                        lang="ne"
+                        placeholder="Word"
+                        value={g.word}
+                        onChange={(e) => setGloss(sense.key, ex.key, g.key, { word: e.target.value })}
+                        className="w-1/3 rounded border border-zinc-300 px-2 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+                      />
+                      <input
+                        placeholder="Gloss"
+                        value={g.gloss}
+                        onChange={(e) => setGloss(sense.key, ex.key, g.key, { gloss: e.target.value })}
+                        className="flex-1 rounded border border-zinc-300 px-2 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeGloss(sense.key, ex.key, g.key)}
+                        className="text-xs text-red-500"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => addGloss(sense.key, ex.key)}
+                    className="text-xs text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
+                  >
+                    + Add word gloss
+                  </button>
                 </div>
               ))}
               <button
@@ -489,6 +677,50 @@ function AdminForm() {
             className="w-full rounded-lg border border-dashed border-zinc-300 py-2 text-sm text-zinc-500 hover:border-zinc-500 dark:border-zinc-700 dark:hover:border-zinc-500"
           >
             + Add sense
+          </button>
+        </section>
+
+        {/* Inflections / derivative forms */}
+        <section className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
+          <h2 className="mb-3 text-sm font-medium">
+            Inflections & derivative forms
+          </h2>
+          {form.wordforms.map((w) => (
+            <div key={w.key} className="mb-2 flex gap-2">
+              <input
+                placeholder="Label (e.g. Past, Causative)"
+                value={w.label}
+                onChange={(e) => setWordForm(w.key, { label: e.target.value })}
+                className="w-1/4 rounded border border-zinc-300 px-3 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+              />
+              <input
+                lang="ne"
+                placeholder="Form (Devanagari)"
+                value={w.form_devanagari}
+                onChange={(e) => setWordForm(w.key, { form_devanagari: e.target.value })}
+                className="w-1/3 rounded border border-zinc-300 px-3 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+              />
+              <input
+                placeholder="Form (roman)"
+                value={w.form_roman}
+                onChange={(e) => setWordForm(w.key, { form_roman: e.target.value })}
+                className="flex-1 rounded border border-zinc-300 px-3 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+              />
+              <button
+                type="button"
+                onClick={() => removeWordForm(w.key)}
+                className="text-sm text-red-500 hover:text-red-700"
+              >
+                Remove
+              </button>
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={addWordForm}
+            className="text-sm text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
+          >
+            + Add form
           </button>
         </section>
 

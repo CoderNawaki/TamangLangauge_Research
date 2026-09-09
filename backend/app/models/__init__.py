@@ -4,7 +4,19 @@ from .audio import Audio
 from .dialect import Dialect
 from .entry import Entry
 from .example import Example
+from .example_gloss import ExampleGloss
 from .sense import Sense
 from .source import Source
+from .wordform import WordForm
 
-__all__ = ["Base", "Audio", "Dialect", "Entry", "Example", "Sense", "Source"]
+__all__ = [
+    "Base",
+    "Audio",
+    "Dialect",
+    "Entry",
+    "Example",
+    "ExampleGloss",
+    "Sense",
+    "Source",
+    "WordForm",
+]

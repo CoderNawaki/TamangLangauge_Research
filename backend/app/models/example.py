@@ -19,6 +19,10 @@ class Example(Base):
     translation_english: Mapped[str | None] = mapped_column(String, nullable=True)
 
     sense: Mapped["Sense"] = relationship(back_populates="examples")
+    glosses: Mapped[list["ExampleGloss"]] = relationship(
+        back_populates="example", cascade="all, delete-orphan", lazy="selectin"
+    )
 
 
+from ..models.example_gloss import ExampleGloss  # noqa: E402
 from ..models.sense import Sense  # noqa: E402

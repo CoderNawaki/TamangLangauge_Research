@@ -118,6 +118,13 @@ export default function EntryDetailPage() {
         </p>
       )}
 
+      {/* Grammar note */}
+      {entry.grammar && (
+        <p className="mb-6 rounded-lg bg-zinc-100 p-3 text-sm text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+          <span className="font-medium">Grammar:</span> {entry.grammar}
+        </p>
+      )}
+
       {/* Senses */}
       <section className="space-y-4">
         {entry.senses.map((sense) => (
@@ -160,6 +167,20 @@ export default function EntryDetailPage() {
                         {ex.translation_english}
                       </p>
                     )}
+                    {ex.glosses.length > 0 && (
+                      <div className="mt-1 flex flex-wrap gap-x-5 gap-y-1">
+                        {ex.glosses.map((g) => (
+                          <div key={g.id} className="flex flex-col">
+                            <span lang="ne" className="font-medium text-zinc-700 dark:text-zinc-200">
+                              {g.word}
+                            </span>
+                            <span className="text-[11px] text-zinc-400">
+                              {g.gloss}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -167,6 +188,35 @@ export default function EntryDetailPage() {
           </div>
         ))}
       </section>
+
+      {/* Wordforms */}
+      {entry.wordforms.length > 0 && (
+        <section className="mt-6">
+          <h2 className="mb-2 text-sm font-medium text-zinc-500">
+            Inflections & forms
+          </h2>
+          <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {entry.wordforms.map((w) => (
+              <li
+                key={w.id}
+                className="rounded-lg border border-zinc-200 p-3 text-sm dark:border-zinc-800"
+              >
+                <span lang="ne" className="text-lg text-zinc-900 dark:text-zinc-50">
+                  {w.form_devanagari}
+                </span>
+                {w.form_roman && (
+                  <span className="ml-2 text-zinc-500">{w.form_roman}</span>
+                )}
+                {w.label && (
+                  <span className="mt-0.5 block text-xs text-zinc-400">
+                    {w.label}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {/* Audio */}
       {entry.audio.length > 0 && (

@@ -5,7 +5,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..models import Entry, Example, Sense
+from ..models import Entry, Example, ExampleGloss, Sense, WordForm
 from ..schemas.entry import EntryCreate, EntryOut, EntryUpdate
 
 router = APIRouter(prefix="/api/entries", tags=["entries"])
@@ -67,15 +67,25 @@ def get_entry(entry_id: int, db: Session = Depends(get_db)) -> Entry:
     return _get_entry_or_404(db, entry_id)
 
 
-@router.post("", response_model=EntryOut, status_code=201)
-def create_entry(payload: EntryCreate, db: Session = Depends(get_db)) -> Entry:
-    entry = Entry(**payload.model_dump(exclude={"senses"}))
-    for sense_data in payload.senses:
+def _apply_payload(entry: Entry, payload: EntryCreate | EntryUpdate) -> None:
+    for sense_data in payload.senses or []:
         sense = Sense(
             **sense_data.model_dump(exclude={"examples"}), entry=entry
         )
         for ex_data in sense_data.examples:
-            sense.examples.append(Example(**ex_data.model_dump()))
+            example = Example(
+                **ex_data.model_dump(exclude={"glosses"}), sense=sense
+            )
+            for gloss_data in ex_data.glosses:
+                example.glosses.append(ExampleGloss(**gloss_data.model_dump()))
+    for wordform_data in payload.wordforms or []:
+        entry.wordforms.append(WordForm(**wordform_data.model_dump()))
+
+
+@router.post("", response_model=EntryOut, status_code=201)
+def create_entry(payload: EntryCreate, db: Session = Depends(get_db)) -> Entry:
+    entry = Entry(**payload.model_dump(exclude={"senses", "wordforms"}))
+    _apply_payload(entry, payload)
     db.add(entry)
     db.commit()
     db.refresh(entry)
@@ -87,17 +97,15 @@ def update_entry(
     entry_id: int, payload: EntryUpdate, db: Session = Depends(get_db)
 ) -> Entry:
     entry = _get_entry_or_404(db, entry_id)
-    data = payload.model_dump(exclude_unset=True, exclude={"senses"})
+    data = payload.model_dump(exclude_unset=True, exclude={"senses", "wordforms"})
     for key, value in data.items():
         setattr(entry, key, value)
     if payload.senses is not None:
         entry.senses.clear()
-        for sense_data in payload.senses:
-            sense = Sense(
-                **sense_data.model_dump(exclude={"examples"}), entry=entry
-            )
-            for ex_data in sense_data.examples:
-                sense.examples.append(Example(**ex_data.model_dump()))
+    if payload.wordforms is not None:
+        entry.wordforms.clear()
+    if payload.senses is not None or payload.wordforms is not None:
+        _apply_payload(entry, payload)
     db.commit()
     db.refresh(entry)
     return entry

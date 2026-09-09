@@ -87,12 +87,20 @@ export default function Home() {
           </h1>
           <p className="mt-1 text-zinc-500">Tamang Language Dictionary</p>
         </div>
-        <Link
-          href="/admin"
-          className="text-sm text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
-        >
-          Manage entries →
-        </Link>
+        <div className="flex items-center gap-4">
+          <Link
+            href="/compare"
+            className="text-sm text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
+          >
+            Compare dialects →
+          </Link>
+          <Link
+            href="/admin"
+            className="text-sm text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
+          >
+            Manage entries →
+          </Link>
+        </div>
       </header>
 
       {/* Bilingual direction toggle */}
