@@ -32,6 +32,7 @@ class Entry(Base):
     tone: Mapped[str | None] = mapped_column(String(10), nullable=True)
     pos: Mapped[str | None] = mapped_column(String(50), nullable=True)
     grammar: Mapped[str | None] = mapped_column(String, nullable=True)
+    etymology: Mapped[str | None] = mapped_column(String, nullable=True)
     status: Mapped[str] = mapped_column(
         String(20), default="draft", index=True
     )  # draft | reviewed | published
@@ -57,10 +58,17 @@ class Entry(Base):
     wordforms: Mapped[list["WordForm"]] = relationship(
         back_populates="entry", cascade="all, delete-orphan", lazy="selectin"
     )
+    semantic_groups: Mapped[list["SemanticGroup"]] = relationship(
+        secondary="entry_groups",
+        back_populates="entries",
+        lazy="selectin",
+        order_by="SemanticGroup.name",
+    )
 
 
 from ..models.audio import Audio  # noqa: E402
 from ..models.dialect import Dialect  # noqa: E402
+from ..models.semantic_group import SemanticGroup  # noqa: E402
 from ..models.source import Source  # noqa: E402
 from ..models.sense import Sense  # noqa: E402
 from ..models.wordform import WordForm  # noqa: E402

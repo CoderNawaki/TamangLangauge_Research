@@ -8,7 +8,11 @@ from .api.audio import router as audio_router
 from .api.compare import router as compare_router
 from .api.dialects import router as dialects_router
 from .api.entries import router as entries_router
+from .api.export import router as export_router
+from .api.groups import router as groups_router
 from .api.imports import router as imports_router
+from .api.minimal_pairs import router as minimal_pairs_router
+from .api.stats import router as stats_router
 from .api.audio import media_root
 from .config import get_settings
 
@@ -39,4 +43,8 @@ app.include_router(audio_router)
 app.include_router(dialects_router)
 app.include_router(imports_router)
 app.include_router(compare_router)
+app.include_router(groups_router)
+app.include_router(minimal_pairs_router)
+app.include_router(stats_router)
+app.include_router(export_router)
 app.mount("/media", StaticFiles(directory=media_root()), name="media")

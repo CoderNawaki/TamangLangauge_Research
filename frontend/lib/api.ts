@@ -56,6 +56,16 @@ export interface Source {
   source_type: string;
 }
 
+export interface SemanticGroup {
+  id: number;
+  name: string;
+  description: string | null;
+}
+
+export interface GroupSummary extends SemanticGroup {
+  entry_count: number;
+}
+
 export interface Entry {
   id: number;
   headword_devanagari: string;
@@ -65,6 +75,7 @@ export interface Entry {
   tone: string | null;
   pos: string | null;
   grammar: string | null;
+  etymology: string | null;
   status: string;
   frequency: number | null;
   dialect: Dialect | null;
@@ -72,6 +83,7 @@ export interface Entry {
   senses: Sense[];
   audio: Audio[];
   wordforms: WordForm[];
+  semantic_groups: SemanticGroup[];
 }
 
 export async function fetchEntries(params?: {
@@ -140,6 +152,7 @@ export interface EntryInput {
   tone?: string | null;
   pos?: string | null;
   grammar?: string | null;
+  etymology?: string | null;
   status?: string;
   frequency?: number | null;
   dialect_id?: number | null;
@@ -264,4 +277,99 @@ export async function compareDialects(headword: string): Promise<Entry[]> {
   );
   if (!res.ok) throw new Error(`Failed to compare dialects (${res.status})`);
   return res.json() as Promise<Entry[]>;
+}
+
+export async function fetchGroups(): Promise<GroupSummary[]> {
+  const res = await fetch(`${API_BASE_URL}/api/groups`);
+  if (!res.ok) throw new Error(`Failed to fetch groups (${res.status})`);
+  return res.json() as Promise<GroupSummary[]>;
+}
+
+export async function createGroup(input: {
+  name: string;
+  description?: string | null;
+}): Promise<SemanticGroup> {
+  const res = await fetch(`${API_BASE_URL}/api/groups`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) throw new Error(`Failed to create group (${res.status})`);
+  return res.json() as Promise<SemanticGroup>;
+}
+
+export async function fetchGroupEntries(groupId: number): Promise<Entry[]> {
+  const res = await fetch(`${API_BASE_URL}/api/groups/${groupId}/entries`);
+  if (!res.ok) throw new Error(`Failed to fetch group entries (${res.status})`);
+  return res.json() as Promise<Entry[]>;
+}
+
+export async function addEntryToGroup(
+  groupId: number,
+  entryId: number
+): Promise<SemanticGroup> {
+  const res = await fetch(`${API_BASE_URL}/api/groups/${groupId}/entries/${entryId}`, {
+    method: "POST",
+  });
+  if (!res.ok) throw new Error(`Failed to add entry to group (${res.status})`);
+  return res.json() as Promise<SemanticGroup>;
+}
+
+export async function removeEntryFromGroup(
+  groupId: number,
+  entryId: number
+): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/api/groups/${groupId}/entries/${entryId}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) throw new Error(`Failed to remove entry from group (${res.status})`);
+}
+
+export interface MinimalPairMember {
+  id: number;
+  headword_devanagari: string;
+  headword_roman: string | null;
+  headword_ipa: string | null;
+  tone: string;
+  pos: string | null;
+  dialect: Dialect | null;
+  status: string;
+}
+
+export interface MinimalPairGroup {
+  stem: string;
+  tones: string[];
+  entries: MinimalPairMember[];
+}
+
+export async function fetchMinimalPairs(): Promise<MinimalPairGroup[]> {
+  const res = await fetch(`${API_BASE_URL}/api/minimal-pairs`);
+  if (!res.ok) throw new Error(`Failed to fetch minimal pairs (${res.status})`);
+  return res.json() as Promise<MinimalPairGroup[]>;
+}
+
+export interface Stats {
+  entries: { total: number; published: number };
+  by_status: Record<string, number>;
+  by_tone: Record<string, number>;
+  by_pos: Record<string, number>;
+  by_dialect: Record<string, number>;
+  senses: number;
+  examples: number;
+  glosses: number;
+  wordforms: number;
+  audio: number;
+  semantic_groups: number;
+}
+
+export async function fetchStats(): Promise<Stats> {
+  const res = await fetch(`${API_BASE_URL}/api/stats`);
+  if (!res.ok) throw new Error(`Failed to fetch stats (${res.status})`);
+  return res.json() as Promise<Stats>;
+}
+
+export function exportUrl(format: "json" | "csv" | "teilex", all = false): string {
+  const query = new URLSearchParams({ format });
+  if (all) query.set("all", "1");
+  return `${API_BASE_URL}/api/export?${query}`;
 }

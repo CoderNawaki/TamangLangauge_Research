@@ -58,6 +58,7 @@ interface FormState {
   tone: string;
   pos: string;
   grammar: string;
+  etymology: string;
   status: string;
   senses: LocalSense[];
   wordforms: LocalWordForm[];
@@ -116,6 +117,7 @@ function AdminForm() {
     tone: "",
     pos: "",
     grammar: "",
+    etymology: "",
     status: "draft",
     senses: [emptySense(0)],
     wordforms: [],
@@ -180,6 +182,7 @@ function AdminForm() {
           tone: e.tone ?? "",
           pos: e.pos ?? "",
           grammar: e.grammar ?? "",
+          etymology: e.etymology ?? "",
           status: e.status,
           senses,
           wordforms,
@@ -391,6 +394,7 @@ function AdminForm() {
     tone: form.tone || null,
     pos: form.pos || null,
     grammar: form.grammar || null,
+    etymology: form.etymology || null,
     status: form.status,
     senses: form.senses
       .filter((s) => s.definition_devanagari.trim())
@@ -448,6 +452,7 @@ function AdminForm() {
           tone: "",
           pos: "",
           grammar: "",
+          etymology: "",
           status: "draft",
           senses: [emptySense(nextKey)],
           wordforms: [],
@@ -554,6 +559,17 @@ function AdminForm() {
               value={form.grammar}
               onChange={(e) => set("grammar", e.target.value)}
               placeholder="e.g. Class 1 transitive verb, wrt. tense paradigm…"
+              className="rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
+            />
+          </label>
+
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium">Etymology</span>
+            <textarea
+              value={form.etymology}
+              onChange={(e) => set("etymology", e.target.value)}
+              rows={2}
+              placeholder="e.g. From Proto-TGTM *qrupa; instrumental verb of …"
               className="rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
             />
           </label>

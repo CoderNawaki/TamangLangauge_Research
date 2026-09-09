@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { API_BASE_URL, type Entry, fetchEntries } from "@/lib/api";
+import { API_BASE_URL, type Entry, exportUrl, fetchEntries } from "@/lib/api";
 
 function SenseList({ entry }: { entry: Entry }) {
   return (
@@ -89,6 +89,24 @@ export default function Home() {
         </div>
         <div className="flex items-center gap-4">
           <Link
+            href="/minimal-pairs"
+            className="text-sm text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
+          >
+            Minimal pairs →
+          </Link>
+          <Link
+            href="/groups"
+            className="text-sm text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
+          >
+            Groups →
+          </Link>
+          <Link
+            href="/stats"
+            className="text-sm text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
+          >
+            Stats →
+          </Link>
+          <Link
             href="/compare"
             className="text-sm text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
           >
@@ -174,6 +192,27 @@ export default function Home() {
           ))}
         </div>
       )}
+
+      <footer className="mt-12 border-t border-zinc-100 pt-4 dark:border-zinc-800">
+        <p className="mb-2 text-xs text-zinc-400">Export dictionary data</p>
+        <div className="flex flex-wrap gap-2 text-sm">
+          <a href={exportUrl("json")} className="text-zinc-600 underline hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-50">
+            JSON
+          </a>
+          <span className="text-zinc-300 dark:text-zinc-700">·</span>
+          <a href={exportUrl("csv")} className="text-zinc-600 underline hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-50">
+            CSV
+          </a>
+          <span className="text-zinc-300 dark:text-zinc-700">·</span>
+          <a href={exportUrl("teilex")} className="text-zinc-600 underline hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-50">
+            TEILex
+          </a>
+          <span className="text-zinc-300 dark:text-zinc-700">·</span>
+          <a href={exportUrl("csv", true)} className="text-zinc-600 underline hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-50">
+            CSV (incl. drafts)
+          </a>
+        </div>
+      </footer>
     </main>
   );
 }
