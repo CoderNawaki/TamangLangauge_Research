@@ -79,6 +79,12 @@ export async function fetchEntry(id: number): Promise<Entry> {
   return res.json() as Promise<Entry>;
 }
 
+export async function fetchDialects(): Promise<Dialect[]> {
+  const res = await fetch(`${API_BASE_URL}/api/dialects`);
+  if (!res.ok) throw new Error(`Failed to fetch dialects (${res.status})`);
+  return res.json() as Promise<Dialect[]>;
+}
+
 export interface ExampleInput {
   text_devanagari?: string | null;
   text_roman?: string | null;

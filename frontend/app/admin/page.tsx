@@ -8,9 +8,11 @@ import {
   createEntry,
   updateEntry,
   fetchEntry,
+  fetchDialects,
   uploadAudio,
   deleteAudio,
   type Audio,
+  type Dialect,
   type EntryInput,
 } from "@/lib/api";
 
@@ -92,7 +94,19 @@ function AdminForm() {
   const [nextKey, setNextKey] = useState(1);
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [audioSpeaker, setAudioSpeaker] = useState("");
+  const [audioDialectId, setAudioDialectId] = useState("");
+  const [dialects, setDialects] = useState<Dialect[]>([]);
   const [uploading, setUploading] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    fetchDialects()
+      .then((d) => active && setDialects(d))
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (editId === null) return;
@@ -214,10 +228,12 @@ function AdminForm() {
     try {
       const created = await uploadAudio(editId, audioFile, {
         speaker: audioSpeaker || null,
+        dialect_id: audioDialectId ? Number(audioDialectId) : null,
       });
       setForm((f) => ({ ...f, audio: [...f.audio, created] }));
       setAudioFile(null);
       setAudioSpeaker("");
+      setAudioDialectId("");
       setMessage({ type: "ok", text: "Recording uploaded." });
     } catch (err) {
       setMessage({
@@ -493,6 +509,9 @@ function AdminForm() {
                       className="h-9 min-w-0 flex-1"
                     />
                     <span className="w-36 shrink-0 truncate text-xs text-zinc-500">
+                      {a.dialect ? a.dialect.name : "—"}
+                    </span>
+                    <span className="w-36 shrink-0 truncate text-xs text-zinc-500">
                       {a.speaker || "unnamed speaker"}
                     </span>
                     <button
@@ -524,6 +543,22 @@ function AdminForm() {
                   placeholder="Optional"
                   className="rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
                 />
+              </label>
+              <label className="flex flex-col gap-1 text-sm">
+                <span className="font-medium">Dialect</span>
+                <select
+                  value={audioDialectId}
+                  onChange={(e) => setAudioDialectId(e.target.value)}
+                  className="rounded border border-zinc-300 px-2 py-2 dark:border-zinc-700 dark:bg-zinc-900"
+                >
+                  <option value="">—</option>
+                  {dialects.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name}
+                      {d.region ? ` (${d.region})` : ""}
+                    </option>
+                  ))}
+                </select>
               </label>
               <button
                 type="submit"
