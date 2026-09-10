@@ -175,12 +175,18 @@ export default function EntryDetailPage() {
             Pronunciation
           </h2>
           {entry.audio.map((a) => (
-            <audio
-              key={a.id}
-              controls
-              src={`${API_BASE_URL}/${a.file_path}`}
-              className="w-full"
-            />
+            <div key={a.id} className="rounded border border-zinc-200 p-3 dark:border-zinc-800">
+              <audio
+                controls
+                src={`${API_BASE_URL}/${a.file_path}`}
+                className="w-full"
+              />
+              <p className="mt-1 text-xs text-zinc-400">
+                {a.speaker ? `Recorded by ${a.speaker}` : "Recording"}
+                {a.dialect ? ` · ${a.dialect.name}` : ""}
+                {a.dialect?.region ? ` (${a.dialect.region})` : ""}
+              </p>
+            </div>
           ))}
         </section>
       )}

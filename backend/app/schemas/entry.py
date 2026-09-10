@@ -61,7 +61,7 @@ class AudioOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    dialect_id: int | None = None
+    dialect: DialectOut | None = None
     speaker: str | None = None
     file_path: str
     recorded_at: datetime | None = None

@@ -20,7 +20,7 @@ export interface Sense {
 
 export interface Audio {
   id: number;
-  dialect_id: number | null;
+  dialect: Dialect | null;
   speaker: string | null;
   file_path: string;
   recorded_at: string | null;
@@ -77,6 +77,12 @@ export async function fetchEntry(id: number): Promise<Entry> {
   const res = await fetch(`${API_BASE_URL}/api/entries/${id}`);
   if (!res.ok) throw new Error(`Failed to fetch entry (${res.status})`);
   return res.json() as Promise<Entry>;
+}
+
+export async function fetchDialects(): Promise<Dialect[]> {
+  const res = await fetch(`${API_BASE_URL}/api/dialects`);
+  if (!res.ok) throw new Error(`Failed to fetch dialects (${res.status})`);
+  return res.json() as Promise<Dialect[]>;
 }
 
 export interface ExampleInput {
@@ -136,4 +142,28 @@ export async function deleteEntry(id: number): Promise<void> {
     method: "DELETE",
   });
   if (!res.ok) throw new Error(`Failed to delete entry (${res.status})`);
+}
+
+export async function uploadAudio(
+  entryId: number,
+  file: File,
+  meta?: { speaker?: string | null; dialect_id?: number | null }
+): Promise<Audio> {
+  const body = new FormData();
+  body.append("file", file);
+  if (meta?.speaker) body.append("speaker", meta.speaker);
+  if (meta?.dialect_id) body.append("dialect_id", String(meta.dialect_id));
+  const res = await fetch(`${API_BASE_URL}/api/entries/${entryId}/audio`, {
+    method: "POST",
+    body,
+  });
+  if (!res.ok) throw new Error(`Failed to upload audio (${res.status})`);
+  return res.json() as Promise<Audio>;
+}
+
+export async function deleteAudio(audioId: number): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/api/audio/${audioId}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) throw new Error(`Failed to delete audio (${res.status})`);
 }

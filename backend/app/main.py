@@ -2,8 +2,12 @@ from __future__ import annotations
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
+from .api.audio import router as audio_router
+from .api.dialects import router as dialects_router
 from .api.entries import router as entries_router
+from .api.audio import media_root
 from .config import get_settings
 
 settings = get_settings()
@@ -29,3 +33,6 @@ def health() -> dict[str, str]:
 
 
 app.include_router(entries_router)
+app.include_router(audio_router)
+app.include_router(dialects_router)
+app.mount("/media", StaticFiles(directory=media_root()), name="media")
