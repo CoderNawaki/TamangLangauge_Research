@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import func, or_, select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from ..database import get_db
@@ -20,13 +20,26 @@ def _get_entry_or_404(db: Session, entry_id: int) -> Entry:
 
 @router.get("", response_model=list[EntryOut])
 def list_entries(
-    q: str | None = Query(default=None, description="Search Devanagari or romanized headword"),
+    q: str | None = Query(default=None, description="Search Devanagari/romanized headword or meaning"),
     status: str | None = Query(default=None),
+    pos: str | None = Query(default=None),
+    tone: str | None = Query(default=None),
     db: Session = Depends(get_db),
 ) -> list[Entry]:
-    stmt = select(Entry)
+    """List entries with optional filters.
+
+    `q` supports both directions:
+      - Tamang → Nepali: type a Tamang headword (Devanagari/roman/IPA)
+      - Nepali → Tamang: type a Nepali word; it matches the entry's sense
+        definitions/glosses and returns the matching Tamang entries.
+    """
+    stmt = select(Entry).distinct()
     if status is not None:
         stmt = stmt.where(Entry.status == status)
+    if pos is not None:
+        stmt = stmt.where(Entry.pos == pos)
+    if tone is not None:
+        stmt = stmt.where(Entry.tone == tone)
     if q is not None and q.strip():
         pattern = f"%{q.strip()}%"
         stmt = stmt.where(
@@ -34,6 +47,15 @@ def list_entries(
                 Entry.headword_devanagari.ilike(pattern),
                 Entry.headword_roman.ilike(pattern),
                 Entry.headword_ipa.ilike(pattern),
+                # Reverse lookup: match meanings/glosses so a Nepali word
+                # finds the Tamang entry it is defined by.
+                Entry.senses.any(
+                    or_(
+                        Sense.definition_devanagari.ilike(pattern),
+                        Sense.definition_roman.ilike(pattern),
+                        Sense.gloss.ilike(pattern),
+                    )
+                ),
             )
         )
     stmt = stmt.order_by(Entry.headword_devanagari)
