@@ -53,6 +53,14 @@ class DialectOut(BaseModel):
     region: str | None = None
 
 
+class SemanticGroupOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    description: str | None = None
+
+
 class ExampleIn(BaseModel):
     text_devanagari: str | None = None
     text_roman: str | None = None
@@ -107,6 +115,7 @@ class EntryCreate(BaseModel):
     tone: str | None = None
     pos: str | None = None
     grammar: str | None = None
+    etymology: str | None = None
     status: str = "draft"
     frequency: int | None = None
     dialect_id: int | None = None
@@ -123,6 +132,7 @@ class EntryUpdate(BaseModel):
     tone: str | None = None
     pos: str | None = None
     grammar: str | None = None
+    etymology: str | None = None
     status: str | None = None
     frequency: int | None = None
     dialect_id: int | None = None
@@ -142,6 +152,7 @@ class EntryOut(BaseModel):
     tone: str | None = None
     pos: str | None = None
     grammar: str | None = None
+    etymology: str | None = None
     status: str
     frequency: int | None = None
     dialect: DialectOut | None = None
@@ -149,3 +160,4 @@ class EntryOut(BaseModel):
     senses: list[SenseOut] = Field(default_factory=list)
     audio: list[AudioOut] = Field(default_factory=list)
     wordforms: list[WordFormOut] = Field(default_factory=list)
+    semantic_groups: list[SemanticGroupOut] = Field(default_factory=list)

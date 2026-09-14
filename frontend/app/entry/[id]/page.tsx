@@ -125,6 +125,29 @@ export default function EntryDetailPage() {
         </p>
       )}
 
+      {/* Etymology */}
+      {entry.etymology && (
+        <p className="mb-6 rounded-lg bg-zinc-100 p-3 text-sm text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+          <span className="font-medium">Etymology:</span> {entry.etymology}
+        </p>
+      )}
+
+      {/* Semantic groups */}
+      {entry.semantic_groups.length > 0 && (
+        <div className="mb-6 flex flex-wrap gap-2">
+          {entry.semantic_groups.map((g) => (
+            <Link
+              key={g.id}
+              href={`/groups#group-${g.id}`}
+              title={g.description ?? undefined}
+              className="rounded-full bg-indigo-100 px-3 py-1 text-xs font-medium text-indigo-800 hover:bg-indigo-200 dark:bg-indigo-900/40 dark:text-indigo-200 dark:hover:bg-indigo-900/70"
+            >
+              {g.name}
+            </Link>
+          ))}
+        </div>
+      )}
+
       {/* Senses */}
       <section className="space-y-4">
         {entry.senses.map((sense) => (
