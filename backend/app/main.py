@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from .api.audio import router as audio_router
+from .api.compare import router as compare_router
 from .api.dialects import router as dialects_router
 from .api.entries import router as entries_router
 from .api.imports import router as imports_router
@@ -37,4 +38,5 @@ app.include_router(entries_router)
 app.include_router(audio_router)
 app.include_router(dialects_router)
 app.include_router(imports_router)
+app.include_router(compare_router)
 app.mount("/media", StaticFiles(directory=media_root()), name="media")
