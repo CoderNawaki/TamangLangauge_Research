@@ -2,19 +2,30 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { deleteEntry, type Entry, fetchEntries } from "@/lib/api";
+import {
+  deleteEntry,
+  type Entry,
+  fetchEntries,
+  updateEntry,
+} from "@/lib/api";
+
+const STATUS_OPTIONS = ["draft", "reviewed", "published"];
 
 export default function AdminListPage() {
   const [entries, setEntries] = useState<Entry[]>([]);
   const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async (q: string) => {
+  const load = useCallback(async (q: string, status: string) => {
     setLoading(true);
     setError(null);
+    const params: { q?: string; status?: string } = {};
+    if (q) params.q = q;
+    if (status) params.status = status;
     try {
-      setEntries(await fetchEntries(q ? { q } : {}));
+      setEntries(await fetchEntries(params));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load entries");
     } finally {
@@ -23,9 +34,18 @@ export default function AdminListPage() {
   }, []);
 
   useEffect(() => {
-    load("");
+    load(query, statusFilter);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [query, statusFilter]);
+
+  const handleStatusChange = async (entry: Entry, status: string) => {
+    try {
+      const updated = await updateEntry(entry.id, { status });
+      setEntries((es) => es.map((e) => (e.id === entry.id ? updated : e)));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Status update failed");
+    }
+  };
 
   const handleDelete = async (entry: Entry) => {
     if (!confirm(`Delete "${entry.headword_devanagari}"?`)) return;
@@ -51,6 +71,12 @@ export default function AdminListPage() {
             ← Dictionary
           </Link>
           <Link
+            href="/admin/import"
+            className="rounded-lg px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-800"
+          >
+            Import data
+          </Link>
+          <Link
             href="/admin"
             className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white dark:bg-zinc-50 dark:text-black"
           >
@@ -60,10 +86,10 @@ export default function AdminListPage() {
       </header>
 
       <form
-        className="mb-6 flex gap-2"
+        className="mb-3 flex gap-2"
         onSubmit={(e) => {
           e.preventDefault();
-          load(query);
+          load(query, statusFilter);
         }}
       >
         <input
@@ -79,6 +105,23 @@ export default function AdminListPage() {
           Search
         </button>
       </form>
+
+      <div className="mb-6 flex gap-1 rounded-lg bg-zinc-100 p-1 dark:bg-zinc-900">
+        {["", ...STATUS_OPTIONS].map((status) => (
+          <button
+            key={status || "all"}
+            type="button"
+            onClick={() => setStatusFilter(status)}
+            className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+              statusFilter === status
+                ? "bg-white text-zinc-900 shadow dark:bg-zinc-700 dark:text-zinc-50"
+                : "text-zinc-500 dark:text-zinc-400"
+            }`}
+          >
+            {status === "" ? "All" : status}
+          </button>
+        ))}
+      </div>
 
       {error && (
         <p className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
@@ -103,7 +146,17 @@ export default function AdminListPage() {
                 <span className="text-xs text-zinc-400">{entry.pos}</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-xs text-zinc-400">{entry.status}</span>
+                <select
+                  value={entry.status}
+                  onChange={(e) => handleStatusChange(entry, e.target.value)}
+                  className="rounded border border-zinc-300 bg-transparent px-1.5 py-1 text-xs font-medium dark:border-zinc-700 dark:bg-zinc-900"
+                >
+                  {STATUS_OPTIONS.map((s) => (
+                    <option key={s} value={s} className="font-medium">
+                      {s}
+                    </option>
+                  ))}
+                </select>
                 <Link
                   href={`/admin?id=${entry.id}`}
                   className="text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-50"

@@ -27,6 +27,10 @@ class Audio(Base):
     )
 
     entry: Mapped["Entry"] = relationship(back_populates="audio")
+    dialect: Mapped["Dialect | None"] = relationship(
+        foreign_keys=[dialect_id], lazy="joined"
+    )
 
 
+from ..models.dialect import Dialect  # noqa: E402
 from ..models.entry import Entry  # noqa: E402

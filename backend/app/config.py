@@ -10,6 +10,7 @@ class Settings(BaseSettings):
 
     database_url: str = "sqlite:///./tamang_dict.db"
     debug: bool = True
+    media_dir: str = "media"
 
 
 @lru_cache

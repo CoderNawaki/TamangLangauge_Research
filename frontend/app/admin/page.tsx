@@ -8,6 +8,11 @@ import {
   createEntry,
   updateEntry,
   fetchEntry,
+  fetchDialects,
+  uploadAudio,
+  deleteAudio,
+  type Audio,
+  type Dialect,
   type EntryInput,
 } from "@/lib/api";
 
@@ -40,6 +45,7 @@ interface FormState {
   pos: string;
   status: string;
   senses: LocalSense[];
+  audio: Audio[];
 }
 
 const nextFreeKey = (senses: LocalSense[]): number => {
@@ -80,11 +86,27 @@ function AdminForm() {
     pos: "",
     status: "draft",
     senses: [emptySense(0)],
+    audio: [],
   }));
   const [loading, setLoading] = useState(editId !== null);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: "ok" | "err"; text: string } | null>(null);
   const [nextKey, setNextKey] = useState(1);
+  const [audioFile, setAudioFile] = useState<File | null>(null);
+  const [audioSpeaker, setAudioSpeaker] = useState("");
+  const [audioDialectId, setAudioDialectId] = useState("");
+  const [dialects, setDialects] = useState<Dialect[]>([]);
+  const [uploading, setUploading] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    fetchDialects()
+      .then((d) => active && setDialects(d))
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (editId === null) return;
@@ -115,6 +137,7 @@ function AdminForm() {
           pos: e.pos ?? "",
           status: e.status,
           senses,
+          audio: e.audio,
         });
         setNextKey(nextFreeKey(senses));
         setLoading(false);
@@ -193,6 +216,47 @@ function AdminForm() {
       ),
     }));
 
+  const handleUploadAudio = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (editId === null) return;
+    if (!audioFile) {
+      setMessage({ type: "err", text: "Choose an audio file to upload." });
+      return;
+    }
+    setUploading(true);
+    setMessage(null);
+    try {
+      const created = await uploadAudio(editId, audioFile, {
+        speaker: audioSpeaker || null,
+        dialect_id: audioDialectId ? Number(audioDialectId) : null,
+      });
+      setForm((f) => ({ ...f, audio: [...f.audio, created] }));
+      setAudioFile(null);
+      setAudioSpeaker("");
+      setAudioDialectId("");
+      setMessage({ type: "ok", text: "Recording uploaded." });
+    } catch (err) {
+      setMessage({
+        type: "err",
+        text: err instanceof Error ? err.message : "Upload failed",
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleRemoveAudio = async (record: Audio) => {
+    try {
+      await deleteAudio(record.id);
+      setForm((f) => ({ ...f, audio: f.audio.filter((a) => a.id !== record.id) }));
+    } catch (err) {
+      setMessage({
+        type: "err",
+        text: err instanceof Error ? err.message : "Delete failed",
+      });
+    }
+  };
+
   const buildPayload = (): EntryInput => ({
     headword_devanagari: form.headword_devanagari,
     headword_roman: form.headword_roman || null,
@@ -242,6 +306,7 @@ function AdminForm() {
           pos: "",
           status: "draft",
           senses: [emptySense(nextKey)],
+          audio: [],
         });
         setNextKey((k) => k + 1);
       }
@@ -426,6 +491,85 @@ function AdminForm() {
             + Add sense
           </button>
         </section>
+
+        {/* Pronunciation recordings */}
+        {editId !== null && (
+          <section className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
+            <h2 className="mb-3 text-sm font-medium">Pronunciation recordings</h2>
+            {form.audio.length > 0 && (
+              <ul className="mb-4 space-y-3">
+                {form.audio.map((a) => (
+                  <li
+                    key={a.id}
+                    className="flex items-center gap-3"
+                  >
+                    <audio
+                      controls
+                      src={`${API_BASE_URL}/${a.file_path}`}
+                      className="h-9 min-w-0 flex-1"
+                    />
+                    <span className="w-36 shrink-0 truncate text-xs text-zinc-500">
+                      {a.dialect ? a.dialect.name : "—"}
+                    </span>
+                    <span className="w-36 shrink-0 truncate text-xs text-zinc-500">
+                      {a.speaker || "unnamed speaker"}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveAudio(a)}
+                      className="shrink-0 text-sm text-red-500 hover:text-red-700"
+                    >
+                      Remove
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <form onSubmit={handleUploadAudio} className="flex flex-wrap items-end gap-3">
+              <label className="flex flex-col gap-1 text-sm">
+                <span className="font-medium">Audio file</span>
+                <input
+                  type="file"
+                  accept=".mp3,.wav,.ogg,.m4a,.aac,.flac,.webm,audio/*"
+                  onChange={(e) => setAudioFile(e.target.files?.[0] ?? null)}
+                  className="text-sm file:mr-3 file:rounded file:border-0 file:bg-zinc-900 file:px-3 file:py-1.5 file:text-white dark:file:bg-zinc-50 dark:file:text-black"
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-sm">
+                <span className="font-medium">Speaker</span>
+                <input
+                  value={audioSpeaker}
+                  onChange={(e) => setAudioSpeaker(e.target.value)}
+                  placeholder="Optional"
+                  className="rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-sm">
+                <span className="font-medium">Dialect</span>
+                <select
+                  value={audioDialectId}
+                  onChange={(e) => setAudioDialectId(e.target.value)}
+                  className="rounded border border-zinc-300 px-2 py-2 dark:border-zinc-700 dark:bg-zinc-900"
+                >
+                  <option value="">—</option>
+                  {dialects.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name}
+                      {d.region ? ` (${d.region})` : ""}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button
+                type="submit"
+                disabled={uploading}
+                className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-zinc-50 dark:text-black"
+              >
+                {uploading ? "Uploading…" : "Upload"}
+              </button>
+            </form>
+          </section>
+        )}
 
         {message && (
           <p
