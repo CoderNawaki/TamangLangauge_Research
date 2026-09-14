@@ -167,3 +167,59 @@ export async function deleteAudio(audioId: number): Promise<void> {
   });
   if (!res.ok) throw new Error(`Failed to delete audio (${res.status})`);
 }
+
+export interface CorpusCandidate {
+  token: string;
+  frequency: number;
+}
+
+export interface CorpusAnalysis {
+  total_tokens: number;
+  candidates: CorpusCandidate[];
+}
+
+export interface ImportSummary {
+  created: number;
+  skipped: number;
+  duplicates: string[];
+}
+
+export async function analyzeCorpus(
+  text: string,
+  opts?: { maxCandidates?: number; minFrequency?: number }
+): Promise<CorpusAnalysis> {
+  const res = await fetch(`${API_BASE_URL}/api/import/corpus/analyze`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      text,
+      max_candidates: opts?.maxCandidates ?? 100,
+      min_frequency: opts?.minFrequency ?? 2,
+    }),
+  });
+  if (!res.ok) throw new Error(`Failed to analyze corpus (${res.status})`);
+  return res.json() as Promise<CorpusAnalysis>;
+}
+
+export async function createCorpusEntries(
+  tokens: CorpusCandidate[]
+): Promise<ImportSummary> {
+  const res = await fetch(`${API_BASE_URL}/api/import/corpus/entries`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ tokens }),
+  });
+  if (!res.ok) throw new Error(`Failed to create entries (${res.status})`);
+  return res.json() as Promise<ImportSummary>;
+}
+
+export async function importWordlist(file: File): Promise<ImportSummary> {
+  const body = new FormData();
+  body.append("file", file);
+  const res = await fetch(`${API_BASE_URL}/api/import/wordlist`, {
+    method: "POST",
+    body,
+  });
+  if (!res.ok) throw new Error(`Failed to import wordlist (${res.status})`);
+  return res.json() as Promise<ImportSummary>;
+}
